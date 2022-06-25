@@ -2,19 +2,31 @@ import time
 import logging
 import subprocess
 import os
+import yaml
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
 from datetime import date
 
+# bucket = {
+#   "local": "/Users/justin/Volumes/B2/",
+#   "remote": "B2:"
+# }
 
-bucket = {
-  "local": "/Users/justin/Volumes/B2/",
-  "remote": "B2:"
-}
+def config():
+  config = {}
+  with open("config.yaml", "r") as stream:
+    try:
+      obj = yaml.safe_load(stream)
+      config["log_folder"] = obj["log_folder"]
+      config["bucket"] = obj["bucket"]
+    except yaml.YAMLError as e:
+      logger().error(e)
+  return config
+
 
 def logger():
-  log_file = f"/Users/justin/Projects/rclone-watchdog-sync/logs/{date.today()}.txt"
+  log_file = f"{config()['log_folder']}/{date.today()}.txt"
   os.makedirs(os.path.dirname(log_file), exist_ok=True)
   logging.basicConfig(
     filename=log_file, 
@@ -39,22 +51,22 @@ def run_and_log(cmd):
 class RcloneSyncHandler(FileSystemEventHandler):
   @staticmethod
   def on_any_event(event):
-    cmd = f"rclone sync {bucket['local']} {bucket['remote']}"
+    cmd = f"rclone sync {config()['bucket']['local']} {config()['bucket']['remote']}"
     run_and_log(cmd)
 
 
 observer = Observer()
-observer.schedule(RcloneSyncHandler(), bucket["local"], recursive=True)
-observer.schedule(LoggingEventHandler(), bucket["local"], recursive=True)
+observer.schedule(RcloneSyncHandler(), config()["bucket"]["local"], recursive=True)
+observer.schedule(LoggingEventHandler(), config()["bucket"]["local"], recursive=True)
 observer.start()
 
 
 if __name__ == "__main__":
   try:
     while True:
-      time.sleep(30)
-      command = f"rclone copy {bucket['remote']} {bucket['local']}"
+      command = f"rclone copy {config()['bucket']['remote']} {config()['bucket']['local']}"
       run_and_log(command)
+      time.sleep(30)
 
   finally:
     observer.stop()

@@ -1,0 +1,4 @@
+log_folder: "/some/path"
+bucket:
+  local: "/some/path"
+  remote: "rclone-bucket:"
