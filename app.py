@@ -1,16 +1,14 @@
-import sys
 import time
 import logging
-import watchdog
+import subprocess
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
-from watchdog.events import FileModifiedEvent
-import subprocess
+from datetime import date
 
 
 logging.basicConfig(
-  filename="./log.txt", 
+  filename=f"./logs/log.{date.today()}.txt", 
   level=logging.INFO, 
   format='%(asctime)s - %(message)s', 
   datefmt='%Y-%m-%d %H:%M:%S'
@@ -21,46 +19,39 @@ bucket = {
   "remote": "B2:"
 }
 
-def run_and_log(command):
+
+def run_and_log(cmd):
     try:
-      process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)      
+      process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
       output = process.communicate()[0].decode("utf-8")
       if len(output) > 0:
         logging.info(output)
     except Exception as e:
       logging.error(e)
-    logging.info(command)
+    logging.info(cmd)
+
 
 class RcloneSyncHandler(FileSystemEventHandler):
-  @staticmethod  
-  def on_created(event):
-    command = f"rclone sync {bucket['local']} {bucket['remote']}"
-    run_and_log(command)
- 
   @staticmethod
-  def on_modified(event):
-    file_modified = isinstance(event, FileModifiedEvent)
-    if file_modified:
-      command = f"rclone sync {bucket['local']} {bucket['remote']}"
-      run_and_log(command)
+  def on_any_event(event):
+    cmd = f"rclone sync {bucket['local']} {bucket['remote']}"
+    run_and_log(cmd)
 
-  @staticmethod
-  def on_moved(event):
-    command = f"rclone sync {bucket['local']} {bucket['remote']}"
-    run_and_log(command)
 
 observer = Observer()
 observer.schedule(RcloneSyncHandler(), bucket["local"], recursive=True)
 observer.schedule(LoggingEventHandler(), bucket["local"], recursive=True)
 observer.start()
 
-try:
-  while True:
-    time.sleep(5)
-    command = f"rclone copy {bucket['remote']} {bucket['local']}"
-    run_and_log(command)
 
-finally:
-  observer.stop()
-  observer.join()
+if __name__ == "__main__":
+  try:
+    while True:
+      time.sleep(30)
+      command = f"rclone copy {bucket['remote']} {bucket['local']}"
+      run_and_log(command)
+
+  finally:
+    observer.stop()
+    observer.join()
 
