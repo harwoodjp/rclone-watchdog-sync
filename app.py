@@ -1,23 +1,28 @@
 import time
 import logging
 import subprocess
+import os
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
 from datetime import date
 
 
-logging.basicConfig(
-  filename=f"./logs/log.{date.today()}.txt", 
-  level=logging.INFO, 
-  format='%(asctime)s - %(message)s', 
-  datefmt='%Y-%m-%d %H:%M:%S'
-)
-
 bucket = {
-  "local": "/Users/justin/Projects/pywatch-test/vols/b2/",
+  "local": "/Users/justin/Volumes/B2/",
   "remote": "B2:"
 }
+
+def logger():
+  log_file = f"/Users/justin/Projects/rclone-watchdog-sync/logs/{date.today()}.txt"
+  os.makedirs(os.path.dirname(log_file), exist_ok=True)
+  logging.basicConfig(
+    filename=log_file, 
+    level=logging.INFO, 
+    format='%(asctime)s - %(message)s', 
+    datefmt='%Y-%m-%d %H:%M:%S'
+  )
+  return logging
 
 
 def run_and_log(cmd):
@@ -25,10 +30,10 @@ def run_and_log(cmd):
       process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE)
       output = process.communicate()[0].decode("utf-8")
       if len(output) > 0:
-        logging.info(output)
+        logger().info(output)
     except Exception as e:
       logging.error(e)
-    logging.info(cmd)
+    logger().info(cmd)
 
 
 class RcloneSyncHandler(FileSystemEventHandler):
