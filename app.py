@@ -8,10 +8,6 @@ from watchdog.events import LoggingEventHandler
 from watchdog.events import FileSystemEventHandler
 from datetime import date
 
-# bucket = {
-#   "local": "/Users/justin/Volumes/B2/",
-#   "remote": "B2:"
-# }
 
 def config():
   config = {}
@@ -51,17 +47,16 @@ def run_and_log(cmd):
 class RcloneSyncHandler(FileSystemEventHandler):
   @staticmethod
   def on_any_event(event):
+    time.sleep(2)
     cmd = f"rclone sync {config()['bucket']['local']} {config()['bucket']['remote']}"
     run_and_log(cmd)
 
 
-observer = Observer()
-observer.schedule(RcloneSyncHandler(), config()["bucket"]["local"], recursive=True)
-observer.schedule(LoggingEventHandler(), config()["bucket"]["local"], recursive=True)
-observer.start()
-
-
 if __name__ == "__main__":
+  observer = Observer()
+  observer.schedule(RcloneSyncHandler(), config()["bucket"]["local"], recursive=True)
+  observer.schedule(LoggingEventHandler(), config()["bucket"]["local"], recursive=True)
+  observer.start()  
   try:
     while True:
       command = f"rclone copy {config()['bucket']['remote']} {config()['bucket']['local']}"
